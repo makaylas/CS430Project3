@@ -1,5 +1,5 @@
-# CS430Project2
-NAU CS430 Computer Graphics Project 2
+# CS430Project3
+NAU CS430 Computer Graphics Project 3
 
 How to build: make How it run: ./raycast width height input.json output.ppm 
  How to clean: make clean

@@ -20,11 +20,24 @@ typedef struct {
     struct {
       double normal[3];
       bool normalGiven;
+      double diffuseColor;
+      double specularColor;
     } plane;
     struct {
       double radius;
       bool radiusGiven;
+      double diffuseColor;
+      double specularColor;
     } sphere;
+    struct {
+      double radial_a0;
+      double radial_a1;
+      double radial_a2;
+      double theta;
+      bool theta_given;
+      double angular_a0;
+      double direction[3];
+    } light;
   };
 } Object; 
 
@@ -396,7 +409,6 @@ Object* read_scene (char* filename) {
         aPlane.type = value;
         aPlane.colorGiven = false;
         aPlane.positionGiven = false;
-        aPlane.plane.normalGiven = false;
 
         while (1) {
 
@@ -425,17 +437,13 @@ Object* read_scene (char* filename) {
 
               if ((keyValue[0] < 0) || (keyValue[0] > 255) || (keyValue[1] < 0) || (keyValue[1] > 255)
                    || (keyValue[2] < 0) || (keyValue[2] > 255)) {
-                fprintf(stderr, "Error: Plane color is invalid.\n");
+                fprintf(stderr, "Error: Light color is invalid.\n");
                 exit(1);
               }
 
-              aPlane.colorGiven = true;
-              aPlane.color[0] = keyValue[0];
-              aPlane.color[1] = keyValue[1];
-              aPlane.color[2] = keyValue[2];
             }
 
-            else if (strcmp(key, "normal") == 0) {
+            else if (strcmp(key, "") == 0) {
 
               if (aPlane.plane.normalGiven) {
                 fprintf(stderr, "Error: Plane radius has already been set.\n");
@@ -477,6 +485,89 @@ Object* read_scene (char* filename) {
           exit(1);
         }
         objectArray[i] = aPlane;
+      }
+          //If the object is a plane store it in the plane struct
+      else if (strcmp(value, "light") == 0) {
+
+          Object aPlane;
+          aPlane.type = value;
+          aPlane.colorGiven = false;
+          aPlane.positionGiven = false;
+
+          while (1) {
+
+              c = next_c(json);
+              if (c == '}') {
+
+                  // stop parsing this object
+                  break;
+              }
+              else if (c == ',') {
+                  // read another field
+
+                  skip_ws(json);
+                  char* key = next_string(json);
+                  skip_ws(json);
+                  expect_c(json, ':');
+                  skip_ws(json);
+
+                  if (strcmp(key, "color") == 0) {
+                      if (aPlane.colorGiven) {
+                          fprintf(stderr, "Error: Plane color has already been set.\n");
+                          exit(1);
+                      }
+
+                      double *keyValue = next_vector(json);
+
+                      if ((keyValue[0] < 0) || (keyValue[0] > 255) || (keyValue[1] < 0) || (keyValue[1] > 255)
+                          || (keyValue[2] < 0) || (keyValue[2] > 255)) {
+                          fprintf(stderr, "Error: Plane color is invalid.\n");
+                          exit(1);
+                      }
+
+                      aPlane.colorGiven = true;
+                      aPlane.color[0] = keyValue[0];
+                      aPlane.color[1] = keyValue[1];
+                      aPlane.color[2] = keyValue[2];
+                  }
+
+                  else if (strcmp(key, "normal") == 0) {
+
+                      if (aPlane.plane.normalGiven) {
+                          fprintf(stderr, "Error: Plane radius has already been set.\n");
+                          exit(1);
+
+                      }
+                      double *keyValue = next_vector(json);
+
+                      aPlane.plane.normalGiven = true;
+                      aPlane.plane.normal[0] = keyValue[0];
+                      aPlane.plane.normal[1] = keyValue[1];
+                      aPlane.plane.normal[2] = keyValue[2];
+                  }
+
+                  else if (strcmp(key, "position") == 0) {
+
+                      if (aPlane.positionGiven) {
+                          fprintf(stderr, "Error: Plane position has already been set.\n");
+                          exit(1);
+                      }
+                      double *keyValue = next_vector(json);
+
+                      aPlane.positionGiven = true;
+                      aPlane.position[0] = keyValue[0];
+                      aPlane.position[1] = keyValue[1];
+                      aPlane.position[2] = keyValue[2];
+
+                  }
+                  else {
+                      fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+                              key, line);
+                      //char* value = next_string(json);
+                  }
+                  skip_ws(json);
+              }
+          }
       }
       else {
         fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
